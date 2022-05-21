@@ -74,7 +74,7 @@ public class Main extends JavaPlugin implements Listener {
     
     @EventHandler
     public void onPlayerSleep(PlayerBedEnterEvent event) {
-    	event.getPlayer().sendMessage("There is NOOOO sleep..for a sumuraiii...");
+    	event.getPlayer().sendMessage("There is NOOOO sleep..for a samuraiii...");
     	event.setCancelled(true);
     }
     
