@@ -27,6 +27,11 @@ import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * @author Conor Keegan
+ * @author Ethan Jones
+ * @version 2.0.0
+ */
 public class Main extends JavaPlugin implements Listener {
 
     private ArrayList <Double> zombieSpeeds = new ArrayList <Double> (Arrays.asList(.38, .4, .42, .39, .41));
