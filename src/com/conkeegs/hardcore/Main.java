@@ -19,18 +19,19 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerBedEnterEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class Main extends JavaPlugin implements Listener {
 
-    private ArrayList < Double > zombieSpeeds = new ArrayList < Double > (Arrays.asList(.357, .30, .33, .35, .34, .37, .344, .333, .36, .352, .31, .32, .348, .355, .375));
-    private ArrayList < Double > creeperSpeeds = new ArrayList < Double > (Arrays.asList(.30, .28, .29, .31));
-    private List < World > worldList = null;
+    private ArrayList <Double> zombieSpeeds = new ArrayList <Double> (Arrays.asList(.38, .4, .42, .39, .41));
+    private ArrayList <Double> creeperSpeeds = new ArrayList <Double> (Arrays.asList(.30, .28, .35, .32));
+    private List <World> worldList = null;
     private boolean someoneDied = false;
 
     @Override
@@ -41,15 +42,12 @@ public class Main extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
     	if (someoneDied) {
-
     		for (int i = 0; i < worldList.size(); i++) {
-
     			if (worldList.get(i) != null && !(worldList.get(i).getName().equals("world"))) {
+    				World currentWorld = worldList.get(i);
 
-    				World currWorld = worldList.get(i);
-
-    				Bukkit.unloadWorld(currWorld, false);
-    				deleteWorld(currWorld.getWorldFolder());
+    				Bukkit.unloadWorld(currentWorld, false);
+    				deleteWorld(currentWorld.getWorldFolder());
 
     			}
 
@@ -70,53 +68,84 @@ public class Main extends JavaPlugin implements Listener {
             	}
             }
     	}
+    	
     	return (path.delete());
+    }
+    
+    @EventHandler
+    public void onPlayerSleep(PlayerBedEnterEvent event) {
+    	event.getPlayer().sendMessage("There is NOOOO sleep..for a sumuraiii...");
+    	event.setCancelled(true);
     }
     
     @EventHandler
     public void onPlayerUse(PlayerInteractEvent event) {
     	DecimalFormat format = new DecimalFormat(".00");
-        Player p = event.getPlayer();
+        Player player = event.getPlayer();
+        boolean notHoldingCompass = !(event.getHand() == EquipmentSlot.HAND && player.getInventory().getItemInMainHand().getType() == Material.COMPASS);
      
-        if(event.getHand() == EquipmentSlot.HAND && (p.getInventory().getItemInMainHand().getType() == Material.COMPASS)) {
-        	
-        	if (event.getPlayer().getWorld().getName().equals("world_nether") || event.getPlayer().getWorld().getName().equals("world_the_end")) {
-        		event.getPlayer().sendMessage("You can only use your " + ChatColor.BLUE + "compass" + ChatColor.WHITE + " in the overworld.");
-        		return;
-        	} else if (event.getPlayer().getBedSpawnLocation() == null) {
-        		event.getPlayer().sendMessage("You do not have a " + ChatColor.BLUE + "bed" + ChatColor.WHITE + " location to point to yet.");
-        		return;
-        	}
-        	
-        	double bedDistance = event.getPlayer().getLocation().distance(event.getPlayer().getBedSpawnLocation());
-            double bedTime = (bedDistance / 7) / 60;
-        	p.setCompassTarget(p.getBedSpawnLocation());
-        	Location playerLocation = event.getPlayer().getLocation();
-        	
-        	if (bedTime < 1.0) {
-        		event.getPlayer().sendMessage("You are at " + ChatColor.BLUE + "X: " + playerLocation.getBlockX() + ", Y: " + playerLocation.getBlockY() + ", Z: " + playerLocation.getBlockZ() + ChatColor.WHITE + ". You are about " + ChatColor.BLUE + Math.round(bedDistance) + ChatColor.WHITE + " block(s) away from your " + ChatColor.BLUE + "bed" + ChatColor.WHITE + ". That's " + ChatColor.BLUE + "less than a minute away.");
-        	} else {
-        		event.getPlayer().sendMessage("You are at " + ChatColor.BLUE + "X: " + playerLocation.getBlockX() + ", Y: " + playerLocation.getBlockY() + ", Z: " + playerLocation.getBlockZ() + ChatColor.WHITE + ". You are about " + ChatColor.BLUE + Math.round(bedDistance) + ChatColor.WHITE + " blocks away from your " + ChatColor.BLUE + "bed" + ChatColor.WHITE + ". That's about " + ChatColor.BLUE + format.format(bedTime) + ChatColor.WHITE + " minutes out.");
-        	}
-
-        	for (int i = 0; i < event.getPlayer().getWorld().getPlayers().size(); i++) {
-        		if (!event.getPlayer().getDisplayName().equals(event.getPlayer().getWorld().getPlayers().get(i).getDisplayName())) {
-        			Location othersLocation = event.getPlayer().getWorld().getPlayers().get(i).getLocation();
-        			
-        			if (((event.getPlayer().getWorld().getPlayers().get(i).getLocation().distance(event.getPlayer().getBedSpawnLocation()) / 7) / 60) >= 1.0) {
-            			event.getPlayer().sendMessage("- " + ChatColor.BLUE + event.getPlayer().getWorld().getPlayers().get(i).getDisplayName() + ChatColor.WHITE + " is at " + ChatColor.BLUE + "X: " + othersLocation.getBlockX() + ", Y: " + othersLocation.getBlockY() + ", Z: " + othersLocation.getBlockZ());
-            		} else {
-            			event.getPlayer().sendMessage("- " + ChatColor.BLUE + event.getPlayer().getWorld().getPlayers().get(i).getDisplayName() + ChatColor.WHITE + " is at " + ChatColor.BLUE + "home.");
-            		}
-        		}
-        	}
+        if (notHoldingCompass) {
+        	return;
         }
+        
+        Location playerLocation = event.getPlayer().getLocation();
+    	boolean notInOverworld = event.getPlayer().getWorld().getName().equals("world_nether") || event.getPlayer().getWorld().getName().equals("world_the_end");
+    	boolean noBedLocation = event.getPlayer().getBedSpawnLocation() == null;
+    	
+    	if (notInOverworld) {
+    		event.getPlayer().sendMessage(ChatColor.RED + "You can only get your location in the overworld.");
+    	} else if (noBedLocation) {
+    		event.getPlayer().sendMessage("You are at " + ChatColor.BLUE + "X: " + playerLocation.getBlockX() + ", Y: " + playerLocation.getBlockY() + ", Z: " + playerLocation.getBlockZ() + ChatColor.WHITE + ". You have no " + ChatColor.BLUE + "bed" + ChatColor.WHITE + " location");
+    	} else {
+    		double bedDistance = event.getPlayer().getLocation().distance(event.getPlayer().getBedSpawnLocation());
+            double minutesFromBed = (bedDistance / 7) / 60;
+            
+            player.setCompassTarget(player.getBedSpawnLocation());
+        	
+        	if (minutesFromBed < 1.0) {
+        		event.getPlayer().sendMessage("You are near " + ChatColor.BLUE + "home.");
+        	} else {
+        		event.getPlayer().sendMessage("You are at " + ChatColor.BLUE + "X: " + playerLocation.getBlockX() + ", Y: " + playerLocation.getBlockY() + ", Z: " + playerLocation.getBlockZ() + ChatColor.WHITE + ". You are about " + ChatColor.BLUE + Math.round(bedDistance) + ChatColor.WHITE + " blocks away from your " + ChatColor.BLUE + "bed" + ChatColor.WHITE + ". That's about " + ChatColor.BLUE + format.format(minutesFromBed) + ChatColor.WHITE + " minutes away.");
+        	}
+    	}
+    	
+    	List<Player> playersInWorld = event.getPlayer().getWorld().getPlayers();
+    	
+    	for (int i = 0; i < playersInWorld.size(); i++) {
+    		boolean otherPlayerInOverworld = !playersInWorld.get(i).getWorld().getName().equals("world_nether") && !playersInWorld.get(i).getWorld().getName().equals("world_the_end");
+    		boolean isOtherPlayer = !event.getPlayer().getDisplayName().equals(playersInWorld.get(i).getDisplayName());
+    		Location otherPlayerLocation = playersInWorld.get(i).getLocation();
+    		
+    		if (!otherPlayerInOverworld || !isOtherPlayer) {
+    			continue;
+    		}
+			
+			if (noBedLocation) {
+				event.getPlayer().sendMessage("- " + ChatColor.BLUE + event.getPlayer().getWorld().getPlayers().get(i).getDisplayName() + ChatColor.WHITE + " is at " + ChatColor.BLUE + "X: " + otherPlayerLocation.getBlockX() + ", Y: " + otherPlayerLocation.getBlockY() + ", Z: " + otherPlayerLocation.getBlockZ());
+				continue;
+			}
+			
+			double othersBedDistance = otherPlayerLocation.distance(event.getPlayer().getBedSpawnLocation());
+            double othersBedTime = (othersBedDistance / 7) / 60;
+			
+			if (((otherPlayerLocation.distance(event.getPlayer().getBedSpawnLocation()) / 7) / 60) >= 1.0) {
+    			event.getPlayer().sendMessage("- " + ChatColor.BLUE + playersInWorld.get(i).getDisplayName() + ChatColor.WHITE + " is at " + ChatColor.BLUE + "X: " + otherPlayerLocation.getBlockX() + ", Y: " + otherPlayerLocation.getBlockY() + ", Z: " + otherPlayerLocation.getBlockZ()+ ChatColor.WHITE + ". They are about " + ChatColor.BLUE + Math.round(othersBedDistance) + ChatColor.WHITE + " blocks away from your " + ChatColor.BLUE + "bed" + ChatColor.WHITE + ". That's about " + ChatColor.BLUE + format.format(othersBedTime) + ChatColor.WHITE + " minutes away.");
+    		} else {
+    			event.getPlayer().sendMessage("- " + ChatColor.BLUE + playersInWorld.get(i).getDisplayName() + ChatColor.WHITE + " is near " + ChatColor.BLUE + "home.");
+    		}
+    	}
     }
     
     @EventHandler
     public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
     	Bukkit.broadcastMessage(ChatColor.BLUE + event.getPlayer().getDisplayName() + ChatColor.WHITE + " has issued the command: " + ChatColor.BLUE + "\"" + event.getMessage() + "\"" + ChatColor.WHITE + " (oh no bro...funny?...)");
     }
+    
+    @EventHandler
+    public void onServerCommand(ServerCommandEvent event) {
+    	Bukkit.broadcastMessage(ChatColor.BLUE + "SERVER" + ChatColor.WHITE + " has issued the command: " + ChatColor.BLUE + "\"" + event.getCommand() + "\"" + ChatColor.WHITE + " (DUG...)");
+    }
+
 
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
@@ -145,13 +174,9 @@ public class Main extends JavaPlugin implements Listener {
     @EventHandler
     public void onEntityDamage(EntityDamageByEntityEvent event) {
     	if (event.getDamager() instanceof Zombie) {
-
-            event.setDamage(9);
-
+            event.setDamage(11);
         } else if (event.getDamager() instanceof Arrow) {
-
-            event.setDamage(6);
-
+            event.setDamage(9);
         } else if (event.getDamager() instanceof Creeper) {
         	double distanceFromCreeper = event.getDamager().getLocation().distance(event.getEntity().getLocation());
         	Creeper tempCreeper = (Creeper)event.getDamager();
@@ -164,113 +189,59 @@ public class Main extends JavaPlugin implements Listener {
         	
             tempCreeper.setExplosionRadius(30);
         } else if (event.getDamager() instanceof Enderman) {
-
             event.setDamage(12);
-
         } else if (event.getDamager() instanceof Spider) {
-
             event.setDamage(9);
-
         } else if (event.getDamager() instanceof CaveSpider) {
-
             event.setDamage(9);
-
         } else if (event.getDamager() instanceof ZombieVillager) {
-
-            event.setDamage(9);
-
+            event.setDamage(11);
         } else if (event.getDamager() instanceof Husk) {
-
-            event.setDamage(9);
-
+            event.setDamage(11);
         } else if (event.getDamager() instanceof Drowned) {
-
-            event.setDamage(9);
-
+            event.setDamage(11);
         } else if (event.getDamager() instanceof EnderDragon) {
-
             event.setDamage(20);
-
         } else if (event.getDamager() instanceof Fireball) {
-
             event.setDamage(8);
-
         } else if (event.getDamager() instanceof LargeFireball) {
-
             event.setDamage(20);
-
         } else if (event.getDamager() instanceof MagmaCube) {
-
             event.setDamage(6);
-
         } else if (event.getDamager() instanceof Phantom) {
-
             event.setDamage(7);
-
         } else if (event.getDamager() instanceof Piglin) {
-
-            event.setDamage(7);
-
+            event.setDamage(9);
         } else if (event.getDamager() instanceof Ravager) {
-
             event.setDamage(12);
-
         } else if (event.getDamager() instanceof Hoglin) {
-
             event.setDamage(9);
-
         } else if (event.getDamager() instanceof Trident) {
-
             event.setDamage(10);
-
         } else if (event.getDamager() instanceof WitherSkull) {
-
             event.setDamage(10);
-
         } else if (event.getDamager() instanceof SmallFireball) {
-
             event.setDamage(6);
-
         } else if (event.getDamager() instanceof Slime) {
-
             event.setDamage(6);
-
         } else if (event.getDamager() instanceof Pillager) {
-
             event.setDamage(7);
-
         } else if (event.getDamager() instanceof Illusioner) {
-
-            event.setDamage(6);
-
-        } else if (event.getDamager() instanceof EvokerFangs) {
-
             event.setDamage(7);
-
+        } else if (event.getDamager() instanceof EvokerFangs) {
+            event.setDamage(9);
         } else if (event.getDamager() instanceof Evoker) {
-
             event.setDamage(9);
-
         } else if (event.getDamager() instanceof Stray) {
-
-            event.setDamage(8);
-
-        } else if (event.getDamager() instanceof Vindicator) {
-
-            event.setDamage(10);
-
-        } else if (event.getDamager() instanceof ThrownExpBottle) {
-
-            event.setDamage(10);
-
-        } else if (event.getDamager() instanceof Zoglin) {
-
-            event.setDamage(10);
-
-        } else if (event.getDamager() instanceof PigZombie) {
-
             event.setDamage(9);
-
+        } else if (event.getDamager() instanceof Vindicator) {
+            event.setDamage(10);
+        } else if (event.getDamager() instanceof ThrownExpBottle) {
+            event.setDamage(10);
+        } else if (event.getDamager() instanceof Zoglin) {
+            event.setDamage(10);
+        } else if (event.getDamager() instanceof PigZombie) {
+            event.setDamage(9);
         } else if (event.getDamager() instanceof Fireball) {
             event.setDamage(6);
         } else if (event.getDamager() instanceof PiglinBrute) {
@@ -281,24 +252,18 @@ public class Main extends JavaPlugin implements Listener {
     }
 
     @EventHandler
-    public void onEntitySpawnn(CreatureSpawnEvent event) {
+    public void onEntitySpawn(CreatureSpawnEvent event) {
     	LivingEntity entity = (LivingEntity) event.getEntity();
 
         switch (entity.getName().toLowerCase()) {
-        case "zombie":
-
+        	case "zombie":
                 if (event.getEntity() instanceof Zombie) {
-
                     Zombie zombie = (Zombie) entity;
-
+                    
                     if (zombie.isBaby()) {
-
                         entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(.25);
-
                     } else {
-
-                        entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(zombieSpeeds.get(new Random().nextInt(15)));
-
+                        entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(zombieSpeeds.get(new Random().nextInt(zombieSpeeds.size())));
                     }
 
                 }
@@ -306,49 +271,32 @@ public class Main extends JavaPlugin implements Listener {
                 break;
 
             case "husk":
-
-                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(zombieSpeeds.get(new Random().nextInt(15)));
-
+                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(zombieSpeeds.get(new Random().nextInt(zombieSpeeds.size())));
                 break;
 
             case "creeper":
-
-                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(creeperSpeeds.get(new Random().nextInt(4)));
-
+                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(creeperSpeeds.get(new Random().nextInt(creeperSpeeds.size())));
                 break;
 
             case "drowned":
-
-                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(zombieSpeeds.get(new Random().nextInt(15)));
-
+                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(zombieSpeeds.get(new Random().nextInt(zombieSpeeds.size())));
                 break;
 
             case "zombie_villager":
-
-            	entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(zombieSpeeds.get(new Random().nextInt(15)));
-
+            	entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(zombieSpeeds.get(new Random().nextInt(zombieSpeeds.size())));
                 break;
 
             case "spider":
-
-                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(.33);
-
+                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(.36);
                 break;
-
             case "piglin":
-
                 if (event.getEntity() instanceof Piglin) {
-
                     Piglin piglin = (Piglin) entity;
 
                     if (piglin.isBaby()) {
-
                         entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(.25);
-
                     } else {
-
-                        entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(zombieSpeeds.get(new Random().nextInt(15)));
-
+                        entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(zombieSpeeds.get(new Random().nextInt(zombieSpeeds.size())));
                     }
 
                 }
@@ -357,39 +305,27 @@ public class Main extends JavaPlugin implements Listener {
 
             case "cavespider":
             case "cave_spider":
-
                 entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(.30);
-
                 break;
 
             case "hoglin":
-
-                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(.3);
-
+                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(.33);
                 break;
 
             case "slime":
-
                 entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(.4);
-
                 break;
 
             case "witch":
-
                 entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(.28);
-
                 break;
 
             case "zoglin":
-
-                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(.3);
-
+                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(.34);
                 break;
 
             case "pigzombie":
-
-                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(.34);
-
+                entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(.38);
                 break;
 
         }
